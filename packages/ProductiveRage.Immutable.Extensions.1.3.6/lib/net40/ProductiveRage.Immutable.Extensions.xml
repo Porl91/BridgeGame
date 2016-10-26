@@ -1,0 +1,119 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>ProductiveRage.Immutable.Extensions</name>
+    </assembly>
+    <members>
+        <member name="M:ProductiveRage.Immutable.ComponentKeyGenerator.GetNew">
+            <summary>
+            When declaring dynamic child components, each should one should have a consistent unique key. For some components, this is easy - eg. if rendering a list of
+            messages that have been persisted on the server, each message is likely to have a unique id that may be used as the key. However, there are also times when
+            a dynamic list of items may be created and managed where items may be added and removed (which prevents a simple incrementing numeric value to be used)
+            where there is no "persistence id" to rely upon. This function will generate a new key that is guaranteed to be unique from any other keys that it
+            has returned (so it is not safe to have a set of child components where some use keys from here and some use keys from elsewhere).
+            </summary>
+        </member>
+        <member name="M:ProductiveRage.Immutable.ClassNameExtensions.Add(ProductiveRage.Immutable.ClassName,ProductiveRage.Immutable.Optional{ProductiveRage.Immutable.ClassName})">
+            <summary>
+            Combine a ClassName instance with an Optional ClassName instance, if the Optional ClassName has a value - otherwise the ClassName will be
+            returned. If the Optional ClassName has a value then the two will be joined by a single space.
+            </summary>
+        </member>
+        <member name="M:ProductiveRage.Immutable.ClassNameExtensions.Add(ProductiveRage.Immutable.ClassName,System.String,ProductiveRage.Immutable.Optional{ProductiveRage.Immutable.ClassName})">
+            <summary>
+            Combine a ClassName instance with an Optional ClassName instance, if the Optional ClassName has a value - otherwise the ClassName will be
+            returned. If the Optional ClassName has a value then the two will be joined by a specified delimiter string (which may be blank if desired).
+            </summary>
+        </member>
+        <member name="M:ProductiveRage.Immutable.ClassNameExtensions.Add(ProductiveRage.Immutable.ClassName,ProductiveRage.Immutable.ClassName)">
+            <summary>
+            Combine two ClassNames, joining their values with a single space
+            </summary>
+        </member>
+        <member name="M:ProductiveRage.Immutable.ClassNameExtensions.Add(ProductiveRage.Immutable.ClassName,System.String,ProductiveRage.Immutable.ClassName)">
+            <summary>
+            Combine two ClassNames, joining their values with a specified delimiter string (which may be blank if desired)
+            </summary>
+        </member>
+        <member name="T:ProductiveRage.Immutable.RequestId">
+            <summary>
+            It is a common pattern in a Flux-like architecture for API calls to initiate work and for an action to be sent to the Dispatcher when
+            that work has completed, as all other communications are handled (rather than using the Dispatcher for some events and other async
+            mechanisms, such as Promises, for other communications). It is often important to be able to identify a particular work-completed
+            action back to the where the API call was made (for example, if a form's content is to be saved then that form may be displayed in
+            a disabled state until that particular save operation has completed) or for a particular work-completed action to be compared to
+            another, to determine which is more recent (if there are multiple ways in which new data may arrive in an application, it is useful
+            to be able to ignore stale data that arrives after more recent data). A new RequestId instance is guaranteed to be unique, while
+            still being comparable to other instances to determine which was created more recently. The RequestId is useful as the return
+            value for API calls, so the caller keeps the RequestId and then waits for an action to arrive that corresponds to it.
+            </summary>
+        </member>
+        <member name="M:ProductiveRage.Immutable.IEnumerableExtensions.ToSet``1(System.Collections.Generic.IEnumerable{``0})">
+            <summary>
+            This will throw an exception for any null references (either the values set or any reference within that set)
+            since the Set type will not accept any nulls (if it must potentially contain missing values then type T should
+            be an Optional of some type)
+            </summary>
+        </member>
+        <member name="P:ProductiveRage.Immutable.NonBlankTrimmedString.Value">
+            <summary>
+            This will never be null, blank or have any leading or trailing whitespace
+            </summary>
+        </member>
+        <member name="M:ProductiveRage.Immutable.NonBlankTrimmedString.op_Implicit(ProductiveRage.Immutable.NonBlankTrimmedString)~System.String">
+            <summary>
+            It's convenient to be able to pass a NonBlankTrimmedString instance as any argument
+            that requires a string
+            </summary>
+        </member>
+        <member name="M:ProductiveRage.Immutable.NonBlankTrimmedString.op_Implicit(ProductiveRage.Immutable.NonBlankTrimmedString)~Bridge.Any{Bridge.React.ReactElement,System.String}">
+            <summary>
+            It's convenient to be able to pass a NonBlankTrimmedString instance as any argument
+            that requires a ReactElement-or-string, such as for the children array of the React
+            DOM component factories
+            </summary>
+        </member>
+        <member name="M:ProductiveRage.Immutable.OptionalNonBlankTrimmedStringExtensions.ToNullableString``1(ProductiveRage.Immutable.Optional{``0})">
+            <summary>
+            Translate an Optional NonBlankTrimmedString instance into a string - returning null if there is no value. Nulls are usually not desirable since it's
+            difficult for the type system to describe where a null is and isn't acceptable (which is what the Optional struct is intended to help with) but, if
+            an Optional NonBlankTrimmedString is to be used as a class name of an element then it will need to be reduced to a string instance again at some
+            point since React elements have a string ClassName property (which may be null, meaning set no class attribute).
+            </summary>
+        </member>
+        <member name="M:ProductiveRage.Immutable.OptionalClassNameExtensions.Add(ProductiveRage.Immutable.Optional{ProductiveRage.Immutable.ClassName},ProductiveRage.Immutable.Optional{ProductiveRage.Immutable.ClassName})">
+            <summary>
+            Combine two Optional ClassName instances if both arguments have values, separating them with a single space. If only one argument has a value
+            then that argument will be returned. If neither argument have a value then a missing value will be returned.
+            </summary>
+        </member>
+        <member name="M:ProductiveRage.Immutable.OptionalClassNameExtensions.Add(ProductiveRage.Immutable.Optional{ProductiveRage.Immutable.ClassName},System.String,ProductiveRage.Immutable.Optional{ProductiveRage.Immutable.ClassName})">
+            <summary>
+            Combine two Optional ClassName instances if both arguments have values, separating them with a specified delimiter string (which may be blank
+            if desired). If only one argument has a value then that argument will be returned. If neither argument have a value then a missing value will
+            be returned.
+            </summary>
+        </member>
+        <member name="M:ProductiveRage.Immutable.OptionalClassNameExtensions.Add(ProductiveRage.Immutable.Optional{ProductiveRage.Immutable.ClassName},ProductiveRage.Immutable.ClassName)">
+            <summary>
+            Combine an Optional ClassName instance with a non-Optional ClassName - if the first instance has a value then the two will be combined, separated
+            by a single space. If the source Optional ClassName has no value then the non Optional ClassName will be returned.
+            </summary>
+        </member>
+        <member name="M:ProductiveRage.Immutable.OptionalClassNameExtensions.Add(ProductiveRage.Immutable.Optional{ProductiveRage.Immutable.ClassName},System.String,ProductiveRage.Immutable.ClassName)">
+            <summary>
+            Combine an Optional ClassName instance with a non-Optional ClassName - if the first instance has a value then the two will be combined, separated
+            by a specified delimiter string (which may be blank if desired). If the source Optional ClassName has no value then the non Optional ClassName
+            will be returned.
+            </summary>
+        </member>
+        <member name="M:ProductiveRage.Immutable.CommonProps`1.#ctor">
+            <summary>
+            Since this is an [ObjectLiteral] class, its constructor would never be executed so the input validation has been moved to the BuildCommonPropsObjectLiteral method in the
+            non-generic class below which is now the only way to construct an instance of this class (so the constructor is private since BuildCommonPropsObjectLiteral directly writes
+            out JavaScript to create an object literal with the required data). This class remains as an important part of the type system, despite its weird construction. We shouldn't
+            mark is as [External] since then it won't be possible to use it as a type parameter (which it may be when using it as the props type for component classes).
+            </summary>
+        </member>
+    </members>
+</doc>

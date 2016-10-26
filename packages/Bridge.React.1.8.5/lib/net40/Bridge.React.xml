@@ -1,0 +1,1545 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Bridge.React</name>
+    </assembly>
+    <members>
+        <member name="P:Bridge.React.ReactDomElementAttributes`1.Key">
+            <summary>
+            It's important for React elements to have the ability for a key to be explicitly specified for them so that when dynamic children are generated,
+            React can reconcile them (see http://facebook.github.io/react/docs/multiple-components.html#dynamic-children). It is common to use numeric keys
+            but it is also permitted to use strings (actually, React allows any type but it to-strings its value, so it makes more sense to explicitly
+            limit the values to integers and strings).
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactDomElementAttributes`1.Ref">
+            <summary>
+            The Ref callback allows access to the real DOM element of the React component that is being rendered - the callback will be provided a reference
+            to the DOM element as the component is mounted (this is not something that is required very often, but may be useful for integrating with third
+            party libraries - for more information, see https://facebook.github.io/react/docs/more-about-refs.html)
+            </summary>
+        </member>
+        <member name="T:Bridge.React.StaticComponent">
+            <summary>
+            While the class-based component structure (using the PureComponent and StatelessComponent base classes) is very convenient and feels natural, there is some overhead to
+            constructing the component instances. For the vast majority of the time, this will probably not cause any problems. However, if you have a page where you may need to
+            update 1000s of elements at a time then this construction cost may become non-neligible. An alternative is to use static render methods instead of component classes.
+            The methods in this class make that possible - the render methods used provided must take a single props argument and return a ReactElement. If the props type supports
+            shallow comparison for change detection (which is highly recommended but often requires immutable types to be used for all properties) then the Pure method should be
+            used; this will result in a component with a ShouldComponentUpdate implementation that will tell React not to re-render if the props data hasn't changed. If the props
+            type does not support shallow comparison then the Stateless method should be used; this uses a lighter weight structure to create the React element but there is no
+            way to support a ShouldComponentUpdate mechanism.
+            </summary>
+        </member>
+        <member name="M:Bridge.React.StaticComponent.Pure``1(System.Func{``0,Bridge.React.ReactElement},``0)">
+            <summary>
+            Use this if the props type supports shallow comparison (which generally requires immutable types to be used for all of the props values) - the resulting component
+            will automatically be assigned a ShouldComponentUpdate function so that re-renders of the component may be avoided if the props data has not changed.
+            </summary>
+        </member>
+        <member name="M:Bridge.React.StaticComponent.Stateless``1(System.Func{``0,Bridge.React.ReactElement},``0)">
+            <summary>
+            Use this if the props type does not support shallow comparisons
+            </summary>
+        </member>
+        <member name="M:Bridge.React.StaticComponent.DoPropsReferencesMatch``1(``0,``0)">
+            <summary>
+            This method is just here to make it easier for the native JavaScript in the method above to call the static function in the ComponentPropsHelpers
+            class without us having to bake in the way that Bridge represents static functions on classes
+            </summary>
+        </member>
+        <member name="T:Bridge.React.ComponentPropsHelpers`1">
+            <summary>
+            React internals do some monkeying about with props references that will cause problems if the props reference is a Bridge class which does not have
+            the [ObjectLiteral] attribute on it. The way that the Component and StatelessComponent classes work around this is to wrap props reference in an
+            object literal since React's meddling is not recursive, it doesn't change any property values on props, it just changes how those top-level
+            properties are described. This class provides a standard way to wrap the props data. It also performs some magic to extract any "Key"
+            value from the props, since this must not be tucked away one level deeper as it is a magic React property (for more information
+            about keyed elements, see https://facebook.github.io/react/docs/multiple-components.html#dynamic-children).
+            </summary>
+        </member>
+        <member name="T:Bridge.React.PureComponent`1">
+            <summary>
+            This provides a class that is like a combination of the StatelessComponent and the React "PureRenderMixin" - it has no State and will not update if given a new Props reference
+            whose individual properties are the same as the previous Props reference. Only a shallow equality check is performed, with simple referential equality tests performed - this
+            will be most reliable if immutable, persistent types are used for any nested data structures (as is the case with the PureRenderMixin). Using this base class means that there
+            is often less work for the Virtual DOM to do, meaning that UI updates require less work / are faster / are more efficient. Note that this class only supports the Render method,
+            the other lifecycle methods (ComponentWillReceiveProps, ComponentWillUpdate, etc..) may not be overridden (ShouldComponentUpdate has an internal implementation here that may
+            not be altered) - this is because it is possible that this class' internals may be changed for future versions of React, depending upon what optimisations become available for
+            Stateless Components. As with the Component and StatelessComponent base classes (and due to the way that React initialises components), it is important that derived classes do
+            not perform any logic or initialisation in their constructor, nor may they have any other configuration passed into their constructor but that which is described by the Props
+            data. The constructors will not be executed and so any logic or member initialisation in there will be silenty ignored.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.PureComponent`1.props">
+            <summary>
+            Props is not used by all components and so this may be null
+            </summary>
+        </member>
+        <member name="P:Bridge.React.PureComponent`1.Children">
+            <summary>
+            This will never be null nor contain any null references, though it may be empty if there are no children to render
+            </summary>
+        </member>
+        <member name="M:Bridge.React.ComponentListToReactElementTranslation.ToReactElementArray(System.Collections.Generic.IEnumerable{System.Object})">
+            <summary>
+            This should only be used by the React.DOM factory method overloads - as such, I haven't created separate strongly-typed method signatures for StatelessComponent and PureComponent,
+            I've rolled them together by having a single signature that takes an object set. This means that this method could feasibly be called with an object of references without the
+            private "_reactElement" property, but no-one should be able to call this anyway so that's very low risk. Note that this won't work with the Component base class, it causes
+            React to throw a "Maximum call stack size exceeded" error that I haven't been able to get to the bottom of yet (the ToChildComponentArray extension methods only supported
+            StatelessComponent and PureComponent, so I'm ok for now with only supporting DOM factory methods that handle dynamic sets of StatelessComponent and PureComponent but
+            not Component)
+            </summary>
+        </member>
+        <member name="M:Bridge.React.EnumerableComponentExtensions.ToChildComponentArray(System.Collections.Generic.IEnumerable{Bridge.React.ReactElement})">
+            <summary>
+            When initialising a component that will accept a set of child components, each child components must be of type Any&lt;ReactElement, string&gt; - if you have an enumerable
+            set of ReactElements then calling ToArray will not return an array of the appropriate type, so either each entry must be cast to an Any&lt;ReactElement, string&gt; before
+            calling ToArray or this helper function may be used.
+            </summary>
+        </member>
+        <member name="M:Bridge.React.EnumerableComponentExtensions.ToChildComponentArray``1(System.Collections.Generic.IEnumerable{Bridge.React.PureComponent{``0}})">
+            <summary>
+            When initialising a component that will accept a set of child components, each child components must be of type Any&lt;ReactElement, string&gt; - if you have an enumerable
+            set of PureComponents of the same type then this helper function may be called to produce an array of the correct type (otherwise, each entry must be cast to an
+            Any&lt;ReactElement, string&gt; before ToArray is called on that set)
+            </summary>
+        </member>
+        <member name="M:Bridge.React.EnumerableComponentExtensions.ToChildComponentArray``1(System.Collections.Generic.IEnumerable{Bridge.React.StatelessComponent{``0}})">
+            <summary>
+            When initialising a component that will accept a set of child components, each child components must be of type Any&lt;ReactElement, string&gt; - if you have an enumerable
+            set of PureComponents of the same type then this helper function may be called to produce an array of the correct type (otherwise, each entry must be cast to an
+            Any&lt;ReactElement, string&gt; before ToArray is called on that set)
+            </summary>
+        </member>
+        <member name="P:Bridge.React.DomElementsAttributes.DangerouslySetInnerHTML">
+            <summary>
+            Warning: If this is used then the element may have no other child specified
+            </summary>
+        </member>
+        <member name="P:Bridge.React.SelectAttributes.Value">
+            <summary>
+            This property should be used (instead of Values) if Multiple is false
+            </summary>
+        </member>
+        <member name="P:Bridge.React.SelectAttributes.Values">
+            <summary>
+            This property should be used (instead of Value) if Multiple is true
+            </summary>
+        </member>
+        <member name="P:Bridge.React.TextAreaAttributes.Value">
+            <summary>
+            This should be used to set the the value of a TextArea, React includes a warning if TextArea contents are set using children (so this is not allowed with these bindings)
+            </summary>
+        </member>
+        <member name="M:Bridge.React.DispatcherMessageExtensions.If``1(Bridge.React.DispatcherMessage,System.Action{``0})">
+            <summary>
+            This will execute the specified callback with a non-null reference if the current DispatcherMessage action matches type T.
+            It will never call the work action with a null reference and it will never return a null reference. It will throw an exception
+            for a null DispatcherMessage or null work reference.
+            </summary>
+        </member>
+        <member name="M:Bridge.React.DispatcherMessageExtensions.If``1(Bridge.React.DispatcherMessage,System.Func{``0,System.Boolean},System.Action{``0})">
+            <summary>
+            This will execute the specified callback with a non-null reference if the current DispatcherMessage action matches type T and
+            if that instance of T meets the specified conditions. It will never call the work action with a null reference and it will never
+            return a null reference. It will throw an exception for a null DispatcherMessage, null condition or null work reference.
+            </summary>
+        </member>
+        <member name="M:Bridge.React.DispatcherMessageExtensions.IMatchDispatcherMessages.Else``1(System.Action{``0})">
+            <summary>
+            This will execute the specified callback with a non-null reference if the current DispatcherMessage action matches type T.
+            It will never call the work action with a null reference and it will never return a null reference. It will throw an exception
+            for a null work reference.
+            </summary>
+        </member>
+        <member name="M:Bridge.React.DispatcherMessageExtensions.IMatchDispatcherMessages.Else``1(System.Func{``0,System.Boolean},System.Action{``0})">
+            <summary>
+            This will execute the specified callback with a non-null reference if the current DispatcherMessage action matches type T and
+            if that instance of T meets the specified conditions. It will never call the work action with a null reference and it will never
+            return a null reference. It will throw an exception for a null DispatcherMessage, null condition or null work reference.
+            </summary>
+        </member>
+        <member name="M:Bridge.React.DispatcherMessageExtensions.IMatchDispatcherMessages.IfAnyMatched(System.Action)">
+            <summary>
+            If any DispatcherMessage action has been matched then the specified callback will be executed, if not then it will not be.
+            This will throw an exception for a null work reference.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.DispatcherMessage.Action">
+            <summary>
+            This will never be null
+            </summary>
+        </member>
+        <member name="T:Bridge.React.ReactElement">
+            <summary>
+            The Render method of any custom components must return a ReactElement instance - this is not something that is ever directly created, they may only be created
+            by one of the builtin DOM element creation functions or by the React.createElement function (which is called by the Component base class). As such, this is
+            not a class that needs to be included in the generated JavaScript, it is just to let the C# compiler keep track of how this internal element type passed
+            through the system.
+            </summary>
+        </member>
+        <member name="M:Bridge.React.DOM.TextArea(Bridge.React.TextAreaAttributes)">
+            <summary>
+            A TextArea's contents should be set using the Value property, rather than children (React includes a warning if TextArea contents are set using children and so this is not allowed with these bindings)
+            </summary>
+        </member>
+        <member name="M:Bridge.React.DOM.TextArea">
+            <summary>
+            A TextArea's contents should be set using the Value property on a TextAreaAttributes instance, rather than children (React includes a warning if TextArea contents are set using children and so this is
+            not allowed with these bindings)
+            </summary>
+        </member>
+        <member name="P:Bridge.React.StatelessComponent`1.props">
+            <summary>
+            Props is not used by all components and so this may be null
+            </summary>
+        </member>
+        <member name="P:Bridge.React.StatelessComponent`1.Children">
+            <summary>
+            This will never be null nor contain any null references, though it may be empty if there are no children to render
+            </summary>
+        </member>
+        <member name="T:Bridge.React.Component`2">
+            <summary>
+            This provides a class which may be derived from in order to declare React components. Due to the way that React initialises components, it is important that derived classes
+            do not perform any logic or initialisation in their constructor, nor may they have any other configuration passed into their constructor but that which is described by the
+            props (and state, where applicable) data. The constructors will not be executed and so any logic or member initialisation in there will be silenty ignored.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.Component`2.props">
+            <summary>
+            Props is not used by all components and so this may be null
+            </summary>
+        </member>
+        <member name="P:Bridge.React.Component`2.state">
+            <summary>
+            State is not used by all components and so this may be null
+            </summary>
+        </member>
+        <member name="P:Bridge.React.Component`2.Children">
+            <summary>
+            This will never be null nor contain any null references, though it may be empty if there are no children to render
+            </summary>
+        </member>
+        <member name="M:Bridge.React.Component`2.GetInitialState">
+            <summary>
+            State is not used by all components and so it is valid to return null from any implementation of this function
+            </summary>
+        </member>
+        <member name="M:Bridge.React.Component`2.ComponentWillReceiveProps(`0)">
+            <summary>
+            Props is not used by all components and so it is valid for the nextProps reference passed up here to be null
+            </summary>
+        </member>
+        <member name="M:Bridge.React.Component`2.ShouldComponentUpdate(`0,`1)">
+            <summary>
+            If this returns false then the proposed component update will be cancelled - this may be used as an optimisation to avoid unnecessary updates. Since deep equality
+            checks can be expensive, taking advantage of this mechanism is easiest when the props and state types are immutable and so equality checks are as simple (and cheap)
+            as a reference equality test. Props and State are not used by all components and so it is valid for either or both of the nextProps and nextState references passed
+            up here to be null.
+            </summary>
+        </member>
+        <member name="M:Bridge.React.Component`2.ComponentWillUpdate(`0,`1)">
+            <summary>
+            Props and State are not used by all components and so it is valid for either or both of the nextProps and nextState references passed up here to be null
+            </summary>
+        </member>
+        <member name="M:Bridge.React.Component`2.ComponentDidUpdate(`0,`1)">
+            <summary>
+            Props and State are not used by all components and so it is valid for either or both of the nextProps and nextState references passed up here to be null
+            </summary>
+        </member>
+        <member name="M:Bridge.React.Component`2.SetState(`1)">
+            <summary>
+            This replaces the entire state for the component instance - it does not merge any state data with any state data already present on the instance. As such, it might
+            be best to consider this implementation to be more like ReplaceState.
+            </summary>
+        </member>
+        <member name="M:Bridge.React.Component`2.SetState(`1,System.Action)">
+            <summary>
+            This replaces the entire state for the component instance, and executes the callback delegate when the state has been
+            successfully mutated. See http://stackoverflow.com/questions/30782948/why-calling-react-setstate-method-doesnt-mutate-the-state-immediately
+            </summary>
+        </member>
+        <member name="M:Bridge.React.Component`2.SetStateAsync(`1)">
+            <summary>
+            This replaces the entire state for the component instance asynchronously. Execution will continue when the state has been successfully mutated.
+            </summary>
+        </member>
+        <member name="T:Bridge.React.ReactStyle">
+            <summary>
+            This class defines the properties of the inline styles you can add to react elements
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.AlignContent">
+            <summary>
+            The CSS align-content property aligns a flex container's lines within the flex container when there is extra space on the cross-axis. This property has no effect on single line flexible boxes.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.AlignItems">
+            <summary>
+            The CSS align-items property aligns flex items of the current flex line the same way as justify-content but in the perpendicular direction.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.AlignSelf">
+            <summary>
+            The align-self CSS property aligns flex items of the current flex line overriding the align-items value. If any of the flex item's cross-axis margin is set to auto, then align-self is ignored.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.All">
+            <summary>
+            The CSS all shorthand property resets all properties, but unicode-bidi and direction to their initial or inherited value.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Animation">
+            <summary>
+            The animation CSS property is a shorthand property for animation-name, animation-duration, animation-timing-function, animation-delay, animation-iteration-count, animation-direction and animation-fill-mode.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.AnimationDelay">
+            <summary>
+            The animation-delay CSS property specifies when the animation should start. This lets the animation sequence begin some time after it's applied to an element.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.AnimationDirection">
+            <summary>
+            The animation-direction CSS property indicates whether the animation should play in reverse on alternate cycles.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.AnimationDirectionString">
+            <summary>
+            The animation-direction CSS property indicates whether the animation should play in reverse on alternate cycles.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.AnimationDuration">
+            <summary>
+            The animation-duration CSS property specifies the length of time that an animation should take to complete one cycle.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.AnimationFillMode">
+            <summary>
+            The animation-fill-mode CSS property specifies how a CSS animation should apply styles to its target before and after it is executing.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.AnimationFillModeString">
+            <summary>
+            The animation-fill-mode CSS property specifies how a CSS animation should apply styles to its target before and after it is executing.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.AnimationIterationCount">
+            <summary>
+            The animation-iteration-count CSS property defines the number of times an animation cycle should be played before stopping.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.AnimationName">
+            <summary>
+            The animation-name CSS property specifies a list of animations that should be applied to the selected element. Each name indicates a @keyframes at-rule that defines the property values for the animation sequence.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.AnimationPlayState">
+            <summary>
+            The animation-play-state CSS property determines whether an animation is running or paused. You can query this property's value to determine whether or not the animation is currently running { private get; set; } in addition, you can set its value to pause and resume playback of an animation.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.AnimationPlayStateString">
+            <summary>
+            The animation-play-state CSS property determines whether an animation is running or paused. You can query this property's value to determine whether or not the animation is currently running { private get; set; } in addition, you can set its value to pause and resume playback of an animation.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.AnimationTimingFunction">
+            <summary>
+            The CSS animation-timing-function property specifies how a CSS animation should progress over the duration of each cycle.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.AnimationTimingFunctionString">
+            <summary>
+            The CSS animation-timing-function property specifies how a CSS animation should progress over the duration of each cycle.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BackfaceVisibility">
+            <summary>
+            The CSS backface-visibility property determines whether or not the back face of the element is visible when facing the user. The back face of an element always is a transparent background, letting, when visible, a mirror image of the front face be displayed.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Background">
+            <summary>
+            The background CSS property is a shorthand for setting the individual background values in a single place in the style sheet. background can be used to set the values for one or more of: background-clip, background-color, background-image, background-origin, background-position, background-repeat, background-size, and background-attachment.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BackgroundAttachment">
+            <summary>
+            If a background-image is specified, the background-attachment CSS property determines whether that image's position is fixed within the viewport, or scrolls along with its containing block.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BackgroundBlendMode">
+            <summary>
+            The background-blend-mode CSS property describes how a background should blend with the element's background that is below it and the element's background color. Background elements should be blended while content appearance should be kept unchanged.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BackgroundBlendModeString">
+            <summary>
+            The background-blend-mode CSS property describes how a background should blend with the element's background that is below it and the element's background color. Background elements should be blended while content appearance should be kept unchanged.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BackgroundClip">
+            <summary>
+            The background-clip CSS property specifies whether an element's background, either the color or image, extends underneath its border.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BackgroundColor">
+            <summary>
+            The background-color CSS property sets the background color of an element, either through a color value or the keyword transparent.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BackgroundImage">
+            <summary>
+            The CSS background-image property sets one or several background images for an element. The images are drawn on successive stacking context layers, with the first specified being drawn as if it is the closest to the user. The borders of the element are then drawn on top of them, and the background-color is drawn beneath them.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BackgroundOrigin">
+            <summary>
+            The background-origin CSS property determines the background positioning area, that is the position of the origin of an image specified using the background-image CSS property.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BackgroundPosition">
+            <summary>
+            The background-position CSS property sets the initial position, relative to the background position layer defined by background-origin for each defined background image.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BackgroundRepeat">
+            <summary>
+            The background-repeat CSS property defines how background images are repeated. A background image can be repeated along the horizontal axis, the vertical axis, both, or not repeated at all. When the repetition of the image tiles doesn't let them exactly cover the background, the way adjustments are done can be controlled by the author: by default, the last image is clipped, but the different tiles can instead be re-sized, or space can be inserted between the tiles.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BackgroundRepeatString">
+            <summary>
+            The background-repeat CSS property defines how background images are repeated. A background image can be repeated along the horizontal axis, the vertical axis, both, or not repeated at all. When the repetition of the image tiles doesn't let them exactly cover the background, the way adjustments are done can be controlled by the author: by default, the last image is clipped, but the different tiles can instead be re-sized, or space can be inserted between the tiles.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BackgroundSize">
+            <summary>
+            The background-size CSS property specifies the size of the background images. The size of the image can be fully constrained or only partially in order to preserve its intrinsic ratio.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Border">
+            <summary>
+            The border CSS property is a shorthand property for setting the individual border property values in a single place in the style sheet. border can be used to set the values for one or more of: border-width, border-style, border-color.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderBottom">
+            <summary>
+            The border-bottom CSS property is a shorthand that sets the values of border-bottom-color, border-bottom-style, and border-bottom-width. These properties describe the bottom border of elements.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderBottomColor">
+            <summary>
+            The border-bottom-color CSS property sets the color of the bottom border of an element. Note that in many cases the shorthand CSS properties border-color or border-bottom are more convenient and preferable.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderBottomLeftRadius">
+            <summary>
+            The border-bottom-left-radius CSS property sets the rounding of the bottom-left corner of the element. The rounding can be a circle or an ellipse, or if one of the value is 0 no rounding is done and the corner is square.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderBottomRightRadius">
+            <summary>
+            The border-bottom-right-radius CSS property sets the rounding of the bottom-right corner of the element. The rounding can be a circle or an ellipse, or if one of the value is 0 no rounding is done and the corner is square.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderBottomStyle">
+            <summary>
+            The border-bottom-style CSS property sets the line style of the bottom border of a box.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderBottomWidth">
+            <summary>
+            The border-bottom-width CSS property sets the width of the bottom border of a box.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderBottomWidthString">
+            <summary>
+            The border-bottom-width CSS property sets the width of the bottom border of a box.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderCollapse">
+            <summary>
+            The border-collapse CSS property selects a table's border model. This has a big influence on the look and style of the table cells.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderColor">
+            <summary>
+            The border-color CSS property is a shorthand for setting the color of the four sides of an element's border: border-top-color, border-right-color, border-bottom-color, border-left-color
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderImage">
+            <summary>
+            The border-image CSS property allows drawing an image on the borders of elements. This makes drawing complex looking widgets much simpler than it has been and removes the need for nine boxes in some cases.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderImageOutset">
+            <summary>
+            The border-image-outset property describes, by which amount the border image area extends beyond the border box.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderImageRepeat">
+            <summary>
+            The border-image-repeat CSS property defines how the middle part of a border image is handled so that it can match the size of the border. It has a one-value syntax which describes the behavior of all the sides, and a two-value syntax that sets a different value for the horizontal and vertical behavior.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderImageRepeatString">
+            <summary>
+            The border-image-repeat CSS property defines how the middle part of a border image is handled so that it can match the size of the border. It has a one-value syntax which describes the behavior of all the sides, and a two-value syntax that sets a different value for the horizontal and vertical behavior.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderImageSlice">
+            <summary>
+            The border-image-slice CSS property divides the image specified by border-image-source in nine regions: the four corners, the four edges and the middle. It does this by specifying 4 inwards offsets.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderImageSource">
+            <summary>
+            The border-image-source CSS property defines the &lt; { private get; set; }image&gt; { private get; set; } to use instead of the style of the border. If this property is set to none, the style defined by border-style is used instead.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderImageWidth">
+            <summary>
+            The border-image-width CSS property defines the offset to use for dividing the border image in nine parts, the top-left corner, central top edge, top-right-corner, central right edge, bottom-right corner, central bottom edge, bottom-left corner, and central right edge. They represent inward distance from the top, right, bottom, and left edges.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderLeft">
+            <summary>
+            The border-left CSS property is a shorthand that sets the values of border-left-color, border-left-style, and border-left-width. These properties describe the left border of elements.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderLeftColor">
+            <summary>
+            The border-left-color CSS property sets the color of the bottom border of an element. Note that in many cases the shorthand CSS properties border-color or border-left are more convenient and preferable.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderLeftStyle">
+            <summary>
+            The border-left-style CSS property sets the line style of the left border of a box.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderLeftWidth">
+            <summary>
+            The border-left-width CSS property sets the width of the left border of a box.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderLeftWidthString">
+            <summary>
+            The border-left-width CSS property sets the width of the left border of a box.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderRadius">
+            <summary>
+            The border-radius CSS property allows Web authors to define how rounded border corners are. The curve of each corner is defined using one or two radii, defining its shape: circle or ellipse.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderRight">
+            <summary>
+            The border-right CSS property is a shorthand that sets the values of border-right-color, border-right-style, and border-right-width. These properties describe the right border of elements.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderRightColor">
+            <summary>
+            The border-right-color CSS property sets the color of the right border of an element. Note that in many cases the shorthand CSS properties  border-color or border-right are more convenient and preferable.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderRightStyle">
+            <summary>
+            The border-right-style CSS property sets the line style of the right border of a box.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderRightWidth">
+            <summary>
+            The border-right-width CSS property sets the width of the right border of a box.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderRightWidthString">
+            <summary>
+            The border-right-width CSS property sets the width of the right border of a box.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderSpacing">
+            <summary>
+            The border-spacing CSS property specifies the distance between the borders of adjacent cells (only for the separated borders model). This is equivalent to the cellspacing attribute in presentational HTML, but an optional second value can be used to set different horizontal and vertical spacing.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderStyle">
+            <summary>
+            The border-style CSS property is a shorthand property for setting the line style for all four sides of the elements border.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderTop">
+            <summary>
+            The border-top CSS property is a shorthand that sets the values of border-top-color, border-top-style, and border-top-width. These properties describe the top border of elements.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderTopColor">
+            <summary>
+            The border-top-color CSS property sets the color of the top border of an element. Note that in many cases the shorthand CSS properties border-color or border-top are more convenient and preferable.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderTopLeftRadius">
+            <summary>
+            The border-top-left-radius CSS property sets the rounding of the top-left corner of the element. The rounding can be a circle or an ellipse, or if one of the value is 0 no rounding is done and the corner is square.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderTopRightRadius">
+            <summary>
+            The border-top-right-radius CSS property sets the rounding of the top-right corner of the element. The rounding can be a circle or an ellipse, or if one of the value is 0 no rounding is done and the corner is square.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderTopStyle">
+            <summary>
+            The border-top-style CSS property sets the line style of the top border of a box.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderTopWidth">
+            <summary>
+            The border-top-width CSS property sets the width of the top border of a box.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderTopWidthString">
+            <summary>
+            The border-top-width CSS property sets the width of the top border of a box.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderWidth">
+            <summary>
+            The border-width CSS property sets the width of the border of a box. Using the shorthand property border is often more convenient.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BorderWidthString">
+            <summary>
+            The border-width CSS property sets the width of the border of a box. Using the shorthand property border is often more convenient.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Bottom">
+            <summary>
+            The bottom CSS property participates in specifying the position of positioned elements.
+            For absolutely positioned elements, that is those with position: absolute or position: fixed, it specifies the distance between the bottom margin edge of the element and the bottom edge of its containing block.
+            For relatively positioned elements, that is those with position: relative, it specifies the distance the element is moved above its normal position.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BoxDecorationBreak">
+            <summary>
+            Allows to specify what happens to an element when it is broken due to a page break or column break, or for inline elements, a line break.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BoxShadow">
+            <summary>
+            The box-shadow CSS property describes one or more shadow effects as a comma-separated list. It allows casting a drop shadow from the frame of almost any element.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.BoxSizing">
+            <summary>
+            The box-sizing CSS property is used to alter the default CSS box model used to calculate widths and heights of elements.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.CaptionSide">
+            <summary>
+            The caption-side CSS property positions the content of a table's &lt; { private get; set; }caption&gt; { private get; set; } on the specified side.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Clear">
+            <summary>
+            The clear CSS property specifies whether an element can be next to floating elements that precede it or must be moved down (cleared) below them.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Clip">
+            <summary>
+            The clip CSS property defines what portion of an element is visible. The clip property applies only to elements with position:absolute.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.ClipPath">
+             <summary>
+            
+             </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Color">
+            <summary>
+            The CSS color property sets the foreground color of an element's text content, and its decorations. It doesn't affect any other characteristic of the element { private get; set; } it should really be called text-color and would have been named so, save for historical reasons and its appearance in CSS Level 1.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Columns">
+            <summary>
+            The columns CSS property is a shorthand property allowing to set both the column-width and the column-count properties at the same time.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.ColumnCount">
+            <summary>
+            The column-count CSS property describes the number of columns of the element.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.ColumnFill">
+            <summary>
+            The column-fill CSS property controls how contents are partitioned into columns. Contents are either balanced, which means that contents in all columns will have the same height or, when using auto, just take up the room the content needs.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.ColumnGap">
+            <summary>
+            The column-gap CSS property sets the size of the gap between columns for elements which are specified to display as a multi-column element.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.ColumnRule">
+            <summary>
+            In multi-column layouts, the column-rule CSS property specifies a straight line, or "rule", to be drawn between each column. It is a convenient shorthand to avoid setting each of the individual column-rule-* properties separately : column-rule-width, column-rule-style and column-rule-color.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.ColumnRuleColor">
+            <summary>
+            The column-rule-color CSS property lets you set the color of the rule drawn between columns in multi-column layouts.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.ColumnRuleStyle">
+            <summary>
+            The column-rule-style CSS property lets you set the style of the rule drawn between columns in multi-column layouts.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.ColumnRuleWidth">
+            <summary>
+            The column-rule-width CSS property lets you set the width of the rule drawn between columns in multi-column layouts.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.ColumnRuleWidthString">
+            <summary>
+            The column-rule-width CSS property lets you set the width of the rule drawn between columns in multi-column layouts.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.ColumnSpan">
+            <summary>
+            The column-span CSS property makes it possible for an element to span across all columns when its value is set to all. An element that spans more than one column is called a spanning element.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.ColumnWidth">
+            <summary>
+            The column-width CSS property suggests an optimal column width. This is not a absolute value but a mere hint. Browser will adjust the width of the column around that suggested value, allowing to achieve scalable designs that fit different screen size. Especially in presence of the column-count CSS property which has precedence, to set an exact column width, all length values must be specified. In horizontal text these are width, column-width, column-gap, and column-rule-width.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Content">
+            <summary>
+            The content CSS property is used with the ::before and ::after pseudo-elements to generate content in an element. Objects inserted using the content property are anonymous replaced elements.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.CounterIncrement">
+            <summary>
+            The counter-increment CSS property is used to increase the value of CSS Counters by a given value. The counter's value can be reset using the counter-reset CSS property.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.CounterReset">
+            <summary>
+            The counter-reset CSS property is used to reset CSS Counters to a given value.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Float">
+            <summary>
+            The float CSS property specifies that an element should be taken from the normal flow and placed along the left or right side of its container, where text and inline elements will wrap around it. A floating element is one where the computed value of float is not none.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.CssText">
+            <summary>
+            The cssText property sets or returns the contents of a style declaration as a string.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Cursor">
+            <summary>
+            The cursor CSS property specifies the mouse cursor displayed when the mouse pointer is over an element.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Direction">
+            <summary>
+            Set the direction CSS property to match the direction of the text: rtl for Hebrew or Arabic text and ltr for other scripts. This is typically done as part of the document (e.g., using the dir attribute in HTML) rather than through direct use of CSS.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Display">
+            <summary>
+            The display CSS property specifies the type of rendering box used for an element. In HTML, default display property values are taken from behaviors described in the HTML specifications or from the browser/user default stylesheet. The default value in XML is inline.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.DominantBaseline">
+            <summary>
+            The dominant-baseline property is used to determine or re-determine a scaled-baseline-table.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.EmptyCells">
+             <summary>
+            
+             </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Fill">
+            <summary>
+            Sets or retrieves a value that indicates the color to paint the interior of the given graphical element.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FillOpacity">
+            <summary>
+            Sets or retrieves a value that specifies the opacity of the painting operation that is used to paint the interior of the current object.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FillRule">
+            <summary>
+            Sets or retrieves a value that indicates the algorithm that is to be used to determine what parts of the canvas are included inside the shape.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Filter">
+            <summary>
+            The CSS filter property provides for effects like blurring or color shifting on an element’s rendering before the element is displayed. Filters are commonly used to adjust the rendering of an image, a background, or a border.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Flex">
+            <summary>
+            The flex CSS property is a shorthand property specifying the ability of a flex item to alter its dimensions to fill available space. Flex items can be stretched to use available space proportional to their flex grow factor or their flex shrink factor to prevent overflow.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FlexBasis">
+            <summary>
+            The CSS flex-basis property specifies the flex basis which is the initial main size of a flex item.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FlexDirection">
+            <summary>
+            The CSS flex-direction property specifies how flex items are placed in t
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FlexFlow">
+            <summary>
+            The CSS flex-flow property is a shorthand property for flex-direction and flex-wrap individual properties.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FlexGrow">
+            <summary>
+            The CSS flex-grow property specifies the flex grow factor of a flex item.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FlexShrink">
+            <summary>
+            The CSS flex-shrink property specifies the flex shrink factor of a flex item.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FlexWrap">
+            <summary>
+            The CSS flex-wrap property specifies whether the children are forced into a single line or if the items can be flowed on multiple lines.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FloodColor">
+            <summary>
+            The flood-color attribute indicates what color to use to flood the current filter primitive subregion defined through the &lt; { private get; set; }feflood&gt; { private get; set; } element. The keyword currentColor and ICC colors can be specified in the same manner as within a &lt; { private get; set; }paint&gt; { private get; set; } specification for the fill and stroke attributes.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FloodOpacity">
+            <summary>
+            The flood-opacity attribute indicates the opacity value to use across the current filter primitive subregion defined through the &lt; { private get; set; }feflood&gt; { private get; set; } element.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Font">
+            <summary>
+            The font CSS property is either a shorthand property for setting font-style, font-variant, font-weight, font-size, line-height and font-family, or a way to set the element's font to a system font, using specific keywords.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FontFamily">
+            <summary>
+            The font-family CSS property allows for a prioritized list of font family names and/or generic family names to be specified for the selected element. Unlike most other CSS properties, values are separated by a comma to indicate that they are alternatives. The browser will select the first font on the list that is installed on the computer, or that can be downloaded using the information provided by a @font-face at-rule.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FontFeatureSettings">
+            <summary>
+            The font-feature-settings CSS property allows control over advanced typographic features in OpenType fonts.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FontKerning">
+            <summary>
+            The font-kerning property allows contextual adjustment of inter-glyph spacing, i.e. the spaces between the characters in text. This property controls <bold>metric kerning</bold> - that utilizes adjustment data contained in the font.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FontLanguageOverride">
+            <summary>
+            The ‘font-language-override’ property allows authors to explicitly specify the language system of the font, overriding the language system implied by the content language.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FontSize">
+            <summary>
+            The font-size CSS property specifies the size of the font – specifically the desired height of glyphs from the font. Setting the font size may, in turn, change the size of other items, since it is used to compute the value of em and ex length units.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FontSizeAdjust">
+            <summary>
+            The font-size-adjust CSS property specifies that font size should be chosen based on the height of lowercase letters rather than the height of capital letters.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FontStretch">
+            <summary>
+            The font-stretch CSS property selects a normal, condensed, or expanded face from a font.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FontStyle">
+            <summary>
+            The font-style CSS property allows italic or oblique faces to be selected within a font-family.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FontSynthesis">
+            <summary>
+            This value specifies whether the user agent is allowed to synthesize bold or oblique font faces when a font family lacks bold or italic faces.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FontVariant">
+            <summary>
+            The font-variant CSS property selects a normal, or small-caps face from a font family. Setting font-variant is also possible by using the font shorthand.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FontVariantAlternates">
+            <summary>
+            Fonts can provide alternate glyphs in addition to default glyph for a character. This property provides control over the selection of these alternate glyphs.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FontVariantCaps">
+            <summary>
+            The font-variant-caps property allows the selection of alternate glyphs used for small or petite capitals or for titling. These glyphs are specifically designed to blend well with the surrounding normal glyphs, to maintain the weight and readability which suffers when text is simply resized to fit this purpose.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FontVariantEastAsian">
+            <summary>
+            The font-variant-east-asian property allows control of glyph substitution and sizing in East Asian text.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FontVariantLigatures">
+            <summary>
+            font-variant-ligatures is a CSS property to control ligatures in text.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FontVariantNumeric">
+            <summary>
+            The font-variant-numeric property specifies control over numerical forms. Within normal paragraph text, proportional numbers are used while tabular numbers are used so that columns of numbers line up properly
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FontVariantPosition">
+            <summary>
+            The font-variant-position property is used to enable typographic subscript and superscript glyphs. These are alternate glyphs designed within the same em-box as default glyphs and are intended to be laid out on the same baseline as the default glyphs, with no resizing or repositioning of the baseline. They are explicitly designed to match the surrounding text and to be more readable without affecting the line height.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.FontWeight">
+            <summary>
+            The font-weight CSS property specifies the weight or boldness of the font. However, some fonts are not available in all weights { private get; set; } some are available only on normal and bold.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Grid">
+            <summary>
+            The grid property in CSS is the foundation of Grid Layout.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.GridArea">
+            <summary>
+            Lays out one or more grid items bound by 4 grid lines. Shorthand for setting grid-column-start, grid-column-end, grid-row-start, and grid-row-end in a single declaration.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.GridAutoColumns">
+            <summary>
+            hanges default size of columns. Creates implicit grid tracks when a grid item is placed into a row or column that is not explicitly sized (by grid-template-rows or grid-template-columns). This property (with grid-auto-rows) specifies the default size of such implicitly-created tracks.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.GridAutoFlow">
+            <summary>
+            Automatically places grid elements into the grid layout if an explicit location is not designated. Designates the direction of the the flow and whether rows or columns must be added to accommodate the element.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.GridAutoPosition">
+            <summary>
+            Specifies the automatic default location if a grid container does not specify automatic-placement strategy via grid-auto-flow.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.GridAutoRows">
+            <summary>
+            Changes default size of grid rows. Creates implicit grid tracks when a grid item is placed into a row that is not explicitly sized (by grid-template-rows ) or when the auto-placement algorithm has generated additional rows. This property (with grid-auto-columns) specifies the size of such implicitly-created tracks.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.GridColumn">
+            <summary>
+            The grid-columns property specifies the width of each column in the grid.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.GridColumnStart">
+            <summary>
+            Determines a grid item's placement by specifying the starting grid lines of a grid item's grid area . A grid item's placement in a grid area consists of a grid position and a grid span.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.GridColumnEnd">
+            <summary>
+            Controls a grid item's placement in a grid area as well as grid position and a grid span. The grid-column-end property (with grid-row-start, grid-row-end, and grid-column-start) determines a grid item's placement by specifying the grid lines of a grid item's grid area.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.GridRow">
+            <summary>
+            Gets or sets a value that indicates which row an element within a Grid should appear in. Shorthand for setting grid-row-start and grid-row-end in a single declaration.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.GridRowStart">
+            <summary>
+            A grid item's placement in a grid area consists of a grid position and a grid span. The grid-row-start property (with grid-row-end, grid-column-start, and grid-column-end) determines a grid item's placement by specifying the grid lines of a grid item's grid area.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.GridRowEnd">
+            <summary>
+            Determines a grid item’s placement by specifying the block-end. A grid item's placement in a grid area consists of a grid position and a grid span. The grid-row-end property (with grid-row-start, grid-column-start, and grid-column-end) determines a grid item's placement by specifying the grid lines of a grid item's grid area.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.GridTemplate">
+            <summary>
+            Shorthand for setting grid-template-columns, grid-template-rows, and grid-template-areas in a single declaration.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.GridTemplateAreas">
+            <summary>
+            Specifies named grid areas which are not associated with any particular grid item, but can be referenced from the grid-placement properties. The syntax of the grid-template-areas property also provides a visualization of the structure of the grid, making the overall layout of the grid container easier to understand.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.GridTemplateRows">
+            <summary>
+            Specifies (with grid-template-columns) the line names and track sizing functions of the grid. Each sizing function can be specified as a length, a percentage of the grid container’s size, a measurement of the contents occupying the column or row, or a fraction of the free space in the grid.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.GridTemplateColumns">
+            <summary>
+            Specifies (with grid-template-rows) the line names and track sizing functions of the grid. Each sizing function can be specified as a length, a percentage of the grid container’s size, a measurement of the contents occupying the column or row, or a fraction of the free space in the grid.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Height">
+            <summary>
+            The height CSS property specifies the height of the content area of an element. The content area is inside the padding, border, and margin of the element.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Hyphens">
+            <summary>
+            The hyphens CSS property tells the browser how to go about splitting words to improve the layout of text when line-wrapping.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Icon">
+            <summary>
+            The icon property provides the author the ability to style an element with an iconic equivalent.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.ImageRendering">
+            <summary>
+            The image-rendering CSS property provides a hint to the user agent about how to handle its image rendering.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.ImageResolution">
+            <summary>
+            The image-resolution property specifies the intrinsic resolution of all raster images used in or on the element. It affects both content images (e.g. replaced elements and generated content) and decorative images (such as 'background-image'). The intrinsic resolution of an image is used to determine the image's intrinsic dimensions.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.ImageOrientation">
+            <summary>
+            The image-orientation CSS property describes how to correct the default orientation of an image.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.ImeMode">
+            <summary>
+            The ime-mode CSS property controls the state of the input method editor for text fields.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.JustifyContent">
+            <summary>
+            The CSS justify-content property defines how a browser distributes available space between and around elements when aligning flex items in the main-axis of the current line.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Left">
+            <summary>
+            The left CSS property specifies part of the position of positioned elements.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.LetterSpacing">
+            <summary>
+            The letter-spacing CSS property specifies spacing behavior between text characters.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.LightingColor">
+            <summary>
+            The ‘lighting-color’ property defines the color of the light source for filter primitives ‘feDiffuseLighting’ and ‘feSpecularLighting’.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.LineHeight">
+            <summary>
+            On block level elements, the line-height CSS property specifies the minimal height of line boxes within the element.
+            On non-replaced inline elements, line-height specifies the height that is used in the calculation of the line box height.
+            On replaced inline elements, like buttons or other input element, line-height has no effect.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.ListStyle">
+            <summary>
+            The list-style CSS property is a shorthand property for setting list-style-type, list-style-image and list-style-position.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.ListStyleImage">
+            <summary>
+            The list-style-image CSS property sets the image that will be used as the list item marker. It is often more convenient to use the shorthand list-style.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.ListStylePosition">
+            <summary>
+            The list-style-position CSS property specifies the position of the marker box in the principal block box. It is often more convenient to use the shortcut list-style.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.ListStyleType">
+            <summary>
+            The list-style-type CSS property specifies appearance of a list item element. As it is the only one who defaults to display:list-item, this is usually a &lt; { private get; set; }li&lt; { private get; set; } element, but can be any element with this display value.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Margin">
+            <summary>
+            The margin CSS property sets the margin for all four sides. It is a shorthand to avoid setting each side separately with the other margin properties: margin-top, margin-right, margin-bottom and margin-left.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.MarginBottom">
+            <summary>
+            The margin-bottom CSS property of an element sets the margin space required on the bottom of an element. A negative value is also allowed.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.MarginLeft">
+            <summary>
+            The margin-left CSS property of an element sets the margin space required on the left side of a box associated with an element. A negative value is also allowed.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.MarginRight">
+            <summary>
+            The margin-right CSS property of an element sets the margin space required on the right side of an element. A negative value is also allowed.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.MarginTop">
+            <summary>
+            The margin-top CSS property of an element sets the margin space required on the top of an element. A negative value is also allowed.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Marks">
+            <summary>
+            The marks CSS property adds crop and/or cross marks to the presentation of the document. Crop marks indicate where the page should be cut. Cross marks are used to align sheets.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Mask">
+            <summary>
+            The mask property in CSS allows users to alter the visibility of an item by either partially or fully hiding it. This is accomplished by either masking or clipping the image at specific points.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.MaskType">
+            <summary>
+            The CSS mask-type properties defines if a SVG &lt; { private get; set; }mask&gt; { private get; set; } element is a luminance or an alpha mask.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.MaxHeight">
+            <summary>
+            The max-height CSS property is used to set the maximum height of a given element. It prevents the used value of the height property from becoming larger than the value specified for max-height.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.MaxWidth">
+            <summary>
+            The max-width CSS property is used to set the maximum width of a given element. It prevents the used value of the width property from becoming larger than the value specified for max-width.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.MinHeight">
+            <summary>
+            The min-height CSS property is used to set the minimum height of a given element. It prevents the used value of the height property from becoming smaller than the value specified for min-height.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.MinWidth">
+            <summary>
+            The min-width CSS property is used to set the minimum width of a given element. It prevents the used value of the width property from becoming smaller than the value specified for min-width.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.MixBlendMode">
+            <summary>
+            The mix-blend-mode CSS property describes how an element content should blend with the content of the element that is below it and the element's background.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.NavDown">
+            <summary>
+            The nav-down property specifies where to navigate when using the arrow-down navigation key.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.NavIndex">
+            <summary>
+            The nav-index property specifies the sequential navigation order ("tabbing order") for an element.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.NavLeft">
+            <summary>
+            The nav-left property specifies where to navigate when using the arrow-left navigation key.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.NavRight">
+            <summary>
+            The nav-right property specifies where to navigate when using the arrow-right navigation key.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.NavUp">
+            <summary>
+            The nav-up property specifies where to navigate when using the arrow-up navigation key.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.ObjectFit">
+            <summary>
+            The ‘object-fit’ property specifies how the contents of a replaced element should be fitted to the box established by its used height and width.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.ObjectPosition">
+            <summary>
+            The ‘object-position’ property determines the alignment of the replaced element inside its box
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Opacity">
+            <summary>
+            The opacity CSS property specifies the transparency of an element, that is, the degree to which the background behind the element is overlaid.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Order">
+            <summary>
+            The CSS order property specifies the order used to lay out flex items in their flex container. Elements are laid out by ascending order of the order value. Elements with the same order value are laid out in the order they appear in the source code.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Orphans">
+            <summary>
+            The orphans CSS property refers to the minimum number of lines in a block container that must be left at the bottom of the page. This property is normally used to control how page breaks occur.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Outline">
+            <summary>
+            The CSS outline property is a shorthand property for setting one or more of the individual outline properties outline-style, outline-width and outline-color in a single rule. In most cases the use of this shortcut is preferable and more convenient.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.OutlineColor">
+            <summary>
+            The outline-color CSS property sets the color of the outline of an element. An outline is a line that is drawn around elements, outside the border edge, to make the element stand out.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.OutlineOffset">
+            <summary>
+            The outline-offset CSS property is used to set space between an outline and the edge or border of an element. An outline is a line that is drawn around elements, outside the border edge.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.OutlineStyle">
+            <summary>
+            The outline-style CSS property is used to set the style of the outline of an element. An outline is a line that is drawn around elements, outside the border edge, to make the element stand out.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.OutlineWidth">
+            <summary>
+            The outline-width CSS property is used to set the width of the outline of an element. An outline is a line that is drawn around elements, outside the border edge, to make the element stand out:
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.OutlineWidthString">
+            <summary>
+            The outline-width CSS property is used to set the width of the outline of an element. An outline is a line that is drawn around elements, outside the border edge, to make the element stand out:
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Overflow">
+            <summary>
+            The overflow CSS property specifies whether to clip content, render scroll bars or display overflow content of a block-level element.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.OverflowWrap">
+            <summary>
+            The word-wrap CSS property is used to specify whether or not the browser may break lines within words in order to prevent overflow (in other words, force wrapping) when an otherwise unbreakable string is too long to fit in its containing box.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.OverflowX">
+            <summary>
+            The overflow-x CSS property specifies whether to clip content, render a scroll bar or display overflow content of a block-level element, when it overflows at the left and right edges.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.OverflowY">
+            <summary>
+            The overflow-y CSS property specifies whether to clip content, render a scroll bar, or display overflow content of a block-level element, when it overflows at the top and bottom edges.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.OverflowClipBox">
+             <summary>
+            
+             </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Padding">
+            <summary>
+            The padding CSS property sets the required padding space on all sides of an element. The padding area is the space between the content of the element and its border. Negative values are not allowed.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.PaddingBottom">
+            <summary>
+            The padding-bottom CSS property of an element sets the height of the padding area at the bottom of an element. The padding area is the space between the content of the element and it's border. Contrary to margin-bottom values, negative values of padding-bottom are invalid.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.PaddingLeft">
+            <summary>
+            The padding-left CSS property of an element sets the padding space required on the left side of an element. The padding area is the space between the content of the element and it's border. A negative value is not allowed.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.PaddingRight">
+            <summary>
+            The padding-right CSS property of an element sets the padding space required on the right side of an element. The padding area is the space between the content of the element and its border. Negative values are not allowed.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.PaddingTop">
+            <summary>
+            The padding-top CSS property of an element sets the padding space required on the top of an element. The padding area is the space between the content of the element and its border. Contrary to margin-top values, negative values of padding-top are invalid.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.PageBreakAfter">
+            <summary>
+            The page-break-after CSS property adjusts page breaks after the current element.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.PageBreakBefore">
+            <summary>
+            The page-break-before CSS property adjusts page breaks before the current element.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.PageBreakInside">
+            <summary>
+            The page-break-inside CSS property adjusts page breaks inside the current element.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Perspective">
+            <summary>
+            The perspective CSS property determines the distance between the z=0 plane and the user in order to give to the 3D-positioned element some perspective.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.PerspectiveOrigin">
+            <summary>
+            The perspective CSS property determines the distance between the z=0 plane and the user in order to give to the 3D-positioned element some perspective.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.PointerEvents">
+            <summary>
+            The CSS property pointer-events allows authors to control under what circumstances (if any) a particular graphic element can become the target of mouse events. When this property is unspecified, the same characteristics of the visiblePainted value apply to SVG content.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Position">
+            <summary>
+            The position CSS property chooses alternative rules for positioning elements, designed to be useful for scripted animation effects.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Quotes">
+            <summary>
+            The quotes CSS property indicates how user agents should render quotation marks.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Resize">
+            <summary>
+            The resize CSS property lets you control the resizability of an element.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Right">
+            <summary>
+            The right CSS property specifies part of the position of positioned elements.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.TableLayout">
+            <summary>
+            The table-layout CSS property defines the algorithm to be used to layout the table cells, rows, and columns.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.TabSize">
+            <summary>
+            The tab-size CSS property is used to customize the width of a tab (U+0009) character.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.TextAlign">
+            <summary>
+            The text-align CSS property describes how inline content like text is aligned in its parent block element. text-align does not control the alignment of block elements itself, only their inline content.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.TextAlignLast">
+            <summary>
+            The text-align-last CSS property describes how the last line of a block or a line, right before a forced line break, is aligned.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.TextCombineHorizontal">
+             <summary>
+            
+             </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.TextDecoration">
+            <summary>
+            The text-decoration CSS property is used to set the text formatting to underline, overline, line-through or blink.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.TextDecorationString">
+            <summary>
+            The text-decoration CSS property is used to set the text formatting to underline, overline, line-through or blink.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.TextDecorationColor">
+            <summary>
+            The text-decoration-color CSS property sets the color used when drawing underlines, overlines, or strike-throughs specified by text-decoration-line.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.TextDecorationLine">
+            <summary>
+            The text-decoration-line CSS property sets what kind of line decorations are added to an element.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.TextDecorationLineString">
+            <summary>
+            The text-decoration-line CSS property sets what kind of line decorations are added to an element.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.TextDecorationStyle">
+            <summary>
+            The text-decoration-style CSS property defines the style of the lines specified by text-decoration-line. The style applies to all lines, there is no way to define different style for each of the line defined by text-decoration-line.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.TextIndent">
+            <summary>
+            The text-indent CSS property specifies how much horizontal space should be left before the beginning of the first line of the text content of an element. Horizontal spacing is with respect to the left (or right, for right-to-left layout) edge of the containing block element's box.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.TextOrientation">
+             <summary>
+            
+             </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.TextOverflow">
+            <summary>
+            The text-overflow CSS property determines how overflowed content that is not displayed is signaled to the users. It can be clipped, or display an ellipsis ('…', U+2026 HORIZONTAL ELLIPSIS) or a Web author-defined string.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.TextRendering">
+            <summary>
+            The text-rendering CSS property provides information to the rendering engine about what to optimize for when rendering text.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.TextShadow">
+            <summary>
+            The text-shadow CSS property adds shadows to text. It accepts a comma-separated list of shadows to be applied to the text and text-decorations of the element.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.TextTransform">
+            <summary>
+            The text-transform CSS property specifies how to capitalize an element's text. It can be used to make text appear in all-uppercase or all-lowercase, or with each word capitalized.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.TextUnderlinePosition">
+            <summary>
+            The CSS text-underline-position property specifies the position of the underline which is set using the text-decoration property underline value.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Top">
+            <summary>
+            The top CSS property specifies part of the position of positioned elements. It has no effect on non-positioned elements.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.TouchAction">
+            <summary>
+            Determines whether touch input may trigger default behavior supplied by the user agent, such as panning or zooming.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Transform">
+            <summary>
+            The CSS transform property lets you modify the coordinate space of the CSS visual formatting model. Using it, elements can be translated, rotated, scaled, and skewed according to the values set.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.TransformOrigin">
+            <summary>
+            The transform-origin CSS property lets you modify the origin for transformations of an element.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.TransformStyle">
+            <summary>
+            The transform-style CSS property determines if the children of the element are positioned in the 3D-space or are flattened in the plane of the element.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Transition">
+            <summary>
+            The CSS transition property is a shorthand property for transition-property, transition-duration, transition-timing-function, and transition-delay.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.TransitionDelay">
+            <summary>
+            The transition-delay CSS property specifies the amount of time to wait between a change being requested to a property that is to be transitioned and the start of the transition effect.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.TransitionDuration">
+            <summary>
+            The transition-duration CSS property specifies the number of seconds or milliseconds a transition animation should take to complete. By default, the value is 0s, meaning that no animation will occur.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.TransitionProperty">
+            <summary>
+            The transition-property CSS property is used to specify the names of CSS properties to which a transition effect should be applied.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.TransitionTimingFunction">
+            <summary>
+            The CSS transition-timing-function property is used to describe how the intermediate values of the CSS properties being affected by a transition effect are calculated. This in essence lets you establish an acceleration curve, so that the speed of the transition can vary over its duration.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.TransitionTimingFunctionString">
+            <summary>
+            The CSS transition-timing-function property is used to describe how the intermediate values of the CSS properties being affected by a transition effect are calculated. This in essence lets you establish an acceleration curve, so that the speed of the transition can vary over its duration.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.UnicodeBidi">
+            <summary>
+            The unicode-bidi CSS property together with the direction property relates to the handling of bidirectional text in a document.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.UnicodeRange">
+            <summary>
+            The unicode-range CSS descriptor sets the specific range of characters to be downloaded from a font defined by @font-face and made available for use on the current page.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.VerticalAlign">
+            <summary>
+            The vertical-align CSS property specifies the vertical alignment of an inline or table-cell box.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Visibility">
+             <summary>
+            
+             </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.WhiteSpace">
+            <summary>
+            The white-space CSS property is used to to describe how whitespace inside the element is handled.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Widows">
+            <summary>
+            The widows CSS property defines how many minimum lines must be left on top of a new page, on a paged media.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.Width">
+            <summary>
+            The width CSS property specifies the width of the content area of an element. The content area is inside the padding, border, and margin of the element.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.WillChange">
+            <summary>
+            The will-change property provides a rendering hint to the user agent, stating what kinds of changes the author expects to perform on the element.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.WordBreak">
+            <summary>
+            The word-break CSS property is used to specify how (or if) to break lines within words.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.WordSpacing">
+            <summary>
+            The word-spacing CSS property specifies spacing behavior between tags and words.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.WordWrap">
+            <summary>
+            The word-wrap CSS property is used to specify whether or not the browser may break lines within words in order to prevent overflow (in other words, force wrapping) when an otherwise unbreakable string is too long to fit in its containing box.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.WritingMode">
+            <summary>
+            CSS Writing Modes Level 3 defines CSS features to support various international script modes, such as left-to-right (e.g., Latin and Indic), right-to-left (e.g., Hebrew and Arabic), bidirectional (e.g., mixed Latin and Arabic) and vertical (e.g., Asian). This article is about the CSS writing-mode property.
+            </summary>
+        </member>
+        <member name="P:Bridge.React.ReactStyle.ZIndex">
+            <summary>
+            The z-index CSS property specifies the z-order of an element and its descendants. When elements overlap, z-order determines which one covers the other. An element with a larger z-index generally covers an element with a lower one.
+            </summary>
+        </member>
+    </members>
+</doc>
