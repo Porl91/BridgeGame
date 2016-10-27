@@ -62,7 +62,6 @@
       <HintPath>..\packages\ProductiveRage.Immutable.Extensions.1.3.6\lib\net40\ProductiveRage.Immutable.Extensions.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="App.cs" />

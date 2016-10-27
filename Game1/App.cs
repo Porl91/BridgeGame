@@ -42,15 +42,21 @@ namespace Game1
 			gl.Viewport(0, 0, gl.DrawingBufferWidth, gl.DrawingBufferHeight);
 			gl.ClearColor(0, 0, 0, 1);
 			gl.Clear(gl.COLOR_BUFFER_BIT);
-			
+
+			WebGLHelpers.DrawImage(gl, textureLoader.Textures.FirstOrDefault(), program, 
+				0, 0, 64, 64,
+				0, 0, 64, 64);
+
+			/*
 			for (var y = 0; y <= 960; y += 64)
 			{
 				for (var x = 0; x <= 960; x += 64)
 				{
 					if (((x + y) & 64) != 0)
-						WebGLHelpers.DrawImage(gl, textureLoader.Textures.First(), program, 64, 64, x, y);
+						WebGLHelpers.DrawImage(gl, textureLoader.Textures.FirstOrDefault(), program, 64, 64, x, y);
 				}
 			}
+			*/
 		}
 
 		static WebGLProgram CreateShaderProgram(WebGLRenderingContext gl, WebGLShader vertShader, WebGLShader fragShader)

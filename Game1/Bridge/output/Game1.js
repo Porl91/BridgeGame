@@ -24794,13 +24794,18 @@ Bridge.assembly("Game1", function ($asm, globals) {
                 gl.clearColor(0, 0, 0, 1);
                 gl.clear(gl.COLOR_BUFFER_BIT);
 
-                for (var y = 0; y <= 960; y = (y + 64) | 0) {
-                    for (var x = 0; x <= 960; x = (x + 64) | 0) {
-                        if (((((x + y) | 0)) & 64) !== 0) {
-                            Game1.WebGLHelpers.drawImage(gl, System.Linq.Enumerable.from(textureLoader.getTextures()).first(), program, 64, 64, x, y);
-                        }
-                    }
-                }
+                Game1.WebGLHelpers.drawImage(gl, System.Linq.Enumerable.from(textureLoader.getTextures()).firstOrDefault(null, null), program, 0, 0, 64, 64, 0, 0, 64, 64);
+
+                /* 
+			for (var y = 0; y <= 960; y += 64)
+			{
+				for (var x = 0; x <= 960; x += 64)
+				{
+					if (((x + y) & 64) != 0)
+						WebGLHelpers.DrawImage(gl, textureLoader.Textures.FirstOrDefault(), program, 64, 64, x, y);
+				}
+			}
+			*/
             },
             createShaderProgram: function (gl, vertShader, fragShader) {
                 var prog = gl.createProgram();
@@ -25038,7 +25043,7 @@ Bridge.assembly("Game1", function ($asm, globals) {
 
     Bridge.define("Game1.WebGLHelpers", {
         statics: {
-            drawImage: function (gl, textureInfo, program, texWidth, texHeight, xDest, yDest) {
+            drawImage: function (gl, textureInfo, program, xSrc, ySrc, srcWidth, srcHeight, xDest, yDest, destWidth, destHeight) {
                 var positionLocation = gl.getAttribLocation(program, "a_position");
                 var texCoordLocation = gl.getAttribLocation(program, "a_texcoord");
 
@@ -25055,27 +25060,33 @@ Bridge.assembly("Game1", function ($asm, globals) {
 
                 /*  Create a buffer to hold the texture coordinates. */
 
-                var sx = texWidth / textureInfo.getWidth().getValue();
-                var sy = texHeight / textureInfo.getHeight().getValue();
+                var sx = srcWidth / textureInfo.getWidth().getValue();
+                var sy = srcHeight / textureInfo.getHeight().getValue();
 
                 var texBuffer = gl.createBuffer();
-                var texCoords = [0, 0, 0, sy, sx, 0, sx, 0, 0, sy, sx, sy];
+                var texCoords = [xSrc * sx, ySrc * sy, xSrc * sx, sy + ySrc * sy, sx + xSrc * sx, ySrc * sy, sx + xSrc * sx, ySrc * sy, xSrc * sx, sy + ySrc * sy, sx + xSrc * sx, sy + ySrc * sy];
 
                 gl.bindBuffer(gl.ARRAY_BUFFER, texBuffer);
                 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texCoords), gl.STATIC_DRAW);
 
+                /*  Other boring shit */
+
                 gl.bindTexture(gl.TEXTURE_2D, textureInfo.getTexture());
                 gl.useProgram(program);
+
                 gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
                 gl.enableVertexAttribArray(positionLocation);
                 gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
                 gl.bindBuffer(gl.ARRAY_BUFFER, texBuffer);
                 gl.enableVertexAttribArray(texCoordLocation);
                 gl.vertexAttribPointer(texCoordLocation, 2, gl.FLOAT, false, 0, 0);
 
+                /*  Create an standard orthographic projection to transform our coordinates by and bind to our shader uniform. */
+
                 var matrix = Game1.CameraHelpers.orthographic(0, gl.canvas.width, gl.canvas.height, 0, -1, 1);
                 matrix = matrix.translate(xDest / gl.canvas.width * 2, ((-yDest) | 0) / gl.canvas.height * 2, 0);
-                matrix = matrix.scale(texWidth, texHeight, 1);
+                matrix = matrix.scale(destWidth, destHeight, 1);
                 gl.uniformMatrix4fv(matrixLocation, false, matrix.toArray());
                 gl.uniform1i(textureLocation, 0);
 
