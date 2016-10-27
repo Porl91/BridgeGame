@@ -52,7 +52,6 @@ namespace Game1
 			var matrix = CameraHelpers.Orthographic(0, gl.Canvas.Width, gl.Canvas.Height, 0, -1, 1);
 			matrix = matrix.Translate(xDest / (float)gl.Canvas.Width * 2, -yDest / (float)gl.Canvas.Height * 2, 0);
 			matrix = matrix.Scale(texWidth, texHeight, 1);
-			Debugger.Break();
 			gl.UniformMatrix4fv(matrixLocation, false, matrix.ToArray());
 			gl.Uniform1i(textureLocation, 0);
 

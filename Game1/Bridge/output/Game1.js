@@ -25076,7 +25076,6 @@ Bridge.assembly("Game1", function ($asm, globals) {
                 var matrix = Game1.CameraHelpers.orthographic(0, gl.canvas.width, gl.canvas.height, 0, -1, 1);
                 matrix = matrix.translate(xDest / gl.canvas.width * 2, ((-yDest) | 0) / gl.canvas.height * 2, 0);
                 matrix = matrix.scale(texWidth, texHeight, 1);
-                debugger;
                 gl.uniformMatrix4fv(matrixLocation, false, matrix.toArray());
                 gl.uniform1i(textureLocation, 0);
 
