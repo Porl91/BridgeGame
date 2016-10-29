@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Game1.Maths;
+using System;
 
 namespace Game1
 {

@@ -1,5 +1,6 @@
 ﻿using Bridge.Html5;
 using Bridge.WebGL;
+using System;
 
 namespace Game1
 {
@@ -123,6 +124,33 @@ namespace Game1
 
 			gl.DrawArrays(gl.LINES, 0, 2);
 			gl.BindBuffer(gl.ARRAY_BUFFER, null);
+		}
+
+		public static WebGLRenderingContext GetWebGLRenderingContext(HTMLCanvasElement canvas)
+		{
+			var contextNames = new string[]
+			{
+				"webgl",
+				"experimental-webgl",
+				"webkit-3d",
+				"moz-webgl"
+			};
+
+			WebGLRenderingContext context = null;
+
+			foreach (var name in contextNames)
+			{
+				try
+				{
+					context = canvas.GetContext(name).As<WebGLRenderingContext>();
+				}
+				catch (Exception) { }
+
+				if (context != null)
+					break;
+			}
+
+			return context;
 		}
 	}
 }

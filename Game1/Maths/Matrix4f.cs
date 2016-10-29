@@ -1,33 +1,39 @@
 ﻿using Bridge.Html5;
+using ProductiveRage.Immutable;
 using System;
 using System.Linq;
 
-namespace Game1
+namespace Game1.Maths
 {
-	public sealed class Matrix4f
+	public sealed class Matrix4f : IAmImmutable
 	{
 		public float[] Values { get; }
 
-		const uint ROW_COUNT = 4;
-		const uint COL_COUNT = 4;
-		const uint ELEMENT_COUNT = ROW_COUNT * COL_COUNT;
+		static uint ROW_COUNT = 4;
+		static uint COL_COUNT = 4;
+		static uint ELEMENT_COUNT = ROW_COUNT * COL_COUNT;
 
 		public Matrix4f()
 		{
-			Values = new float[ELEMENT_COUNT];
+			this.CtorSet(_ => _.Values, new float[ELEMENT_COUNT]);
 		}
 
 		public Matrix4f(float[] values)
 		{
-			if (values.Length != ELEMENT_COUNT)
-				throw new ArgumentException($"Array provided contains {values.Length} elements(s), although {ELEMENT_COUNT} is expected");
-
-			Values = values;
+			this.CtorSet(_ => _.Values, values);
+			Validate();
 		}
 
 		public Matrix4f(Float32Array array)
 		{
-			Values = array.ToArray();
+			this.CtorSet(_ => _.Values, array.ToArray());
+			Validate();
+		}
+
+		void Validate()
+		{
+			if (Values.Length != ELEMENT_COUNT)
+				throw new ArgumentException($"Matrix4f only accepts {ELEMENT_COUNT} values, however {Values.Length} were provided.");
 		}
 
 		public Matrix4f Translate(float tx, float ty, float tz)
@@ -93,22 +99,19 @@ namespace Game1
 			return new Matrix4f(output);
 		}
 
-		public static Matrix4f Identity
+		public static Matrix4f GetIdentity()
 		{
-			get
+			var arr = new float[ELEMENT_COUNT];
+
+			for (var i = 0; i < COL_COUNT; i++)
 			{
-				var arr = new float[ELEMENT_COUNT];
-
-				for (var i = 0; i < COL_COUNT; i++)
+				for (var j = 0; j < ROW_COUNT; j++)
 				{
-					for (var j = 0; j < ROW_COUNT; j++)
-					{
-						arr[i * ROW_COUNT + j] = (i == j) ? 1 : 0;
-					}
+					arr[i * ROW_COUNT + j] = (i == j) ? 1 : 0;
 				}
-
-				return new Matrix4f(arr);
 			}
+
+			return new Matrix4f(arr);
 		}
 
 		public float[] ToArray()

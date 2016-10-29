@@ -2,7 +2,6 @@
 using Bridge.WebGL;
 using ProductiveRage.Immutable;
 using System;
-using System.Linq;
 
 namespace Game1
 {
@@ -12,73 +11,59 @@ namespace Game1
 		public static void Main()
 		{
 			var canvas = Document.GetElementById<HTMLCanvasElement>("main");
-			canvas.Width = 1024;
-			canvas.Height = 1024;
-
-			var gl = GetWebGLRenderingContext(canvas);
+			var gl = WebGLHelpers.GetWebGLRenderingContext(canvas);
 			if (gl == null)
 				throw new InvalidOperationException("Your browser doesn't support WebGL rendering contexts");
-			
+
+			Action onWindowLoadOrResize = () =>
+			{
+				canvas.Width = Window.InnerWidth;
+				canvas.Height = Window.InnerHeight;
+			};
+
+			Window.OnLoad = (e) => onWindowLoadOrResize();
+			Window.OnResize = (e) => onWindowLoadOrResize();
+
 			var textureLoader = new TextureLoader(Set<TextureInfo>.Empty
 				.Add(TextureInfo.Create(gl, "../Content/Images/sprites.png")));
+
+			/* Tuples of 'program ID', 'vertex shader ID' and 'fragment shader ID' */
+
 			var programManager = new ProgramManager(gl, Set<Tuple<string, string, string>>.Empty
 				.Add(Tuple.Create("prog-image", "image-vert-shader", "image-frag-shader"))
 				.Add(Tuple.Create("prog-line", "line-vert-shader", "line-frag-shader")));
 
-			textureLoader.AllLoaded += () => Start(gl, textureLoader, programManager);
+			var level = new Level();
+
+			textureLoader.AllLoaded += () => Start(gl, textureLoader, programManager, level);
 			textureLoader.ProcessTextures();	
 		}
 
-		static void Start(WebGLRenderingContext gl, TextureLoader textureLoader, ProgramManager programManager)
+		static void Start(WebGLRenderingContext gl, TextureLoader textureLoader, ProgramManager programManager, Level level)
 		{
-			Global.SetInterval(() => Render(gl, textureLoader, programManager), 200);
+			Action tick = () => Tick(gl, textureLoader, programManager, level);
+			tick();
+			Global.SetInterval(tick, 200);
 		}
 
-		static void Render(WebGLRenderingContext gl, TextureLoader textureLoader, ProgramManager programManager)
+		static void Tick(WebGLRenderingContext gl, TextureLoader textureLoader, ProgramManager programManager, Level level)
+		{
+			Update(level);
+			Render(gl, textureLoader, programManager, level);
+		}
+
+		static void Update(Level level)
+		{
+			level.Update();
+		}
+
+		static void Render(WebGLRenderingContext gl, TextureLoader textureLoader, ProgramManager programManager, Level level)
 		{
 			gl.Viewport(0, 0, gl.DrawingBufferWidth, gl.DrawingBufferHeight);
 			gl.ClearColor(0, 0, 0, 1);
 			gl.Clear(gl.COLOR_BUFFER_BIT);
 
-			for (var y = 0; y <= 960; y += 64)
-			{
-				for (var x = 0; x <= 960; x += 64)
-				{
-					if (((x + y) & 64) != 0)
-						WebGLHelpers.DrawImage(gl, textureLoader.Textures.First(), programManager.Programs["prog-image"].Program, 0, 0, 64, 64, x, y, 64, 64);
-				}
-			}
-
-			WebGLHelpers.DrawLine(gl, programManager.Programs["prog-line"].Program, 
-				new RGBAColour(255, 255, 0, 255), 
-				300, 200, 100, 50);
-		}
-
-		static WebGLRenderingContext GetWebGLRenderingContext(HTMLCanvasElement canvas)
-		{
-			var contextNames = new string[]
-			{
-				"webgl", 
-				"experimental-webgl", 
-				"webkit-3d", 
-				"moz-webgl"
-			};
-
-			WebGLRenderingContext context = null;
-
-			foreach (var name in contextNames)
-			{
-				try
-				{
-					context = canvas.GetContext(name).As<WebGLRenderingContext>();
-				}
-				catch (Exception) { }
-
-				if (context != null)
-					break;
-			}
-
-			return context;
+			level.Render(gl, textureLoader, programManager, level);
 		}
 	}
 }
