@@ -21,23 +21,20 @@ namespace Game1
 			
 			var textureLoader = new TextureLoader(Set<TextureInfo>.Empty
 				.Add(TextureInfo.Create(gl, "../Content/Images/sprites.png")));
+			var programManager = new ProgramManager(gl, Set<Tuple<string, string, string>>.Empty
+				.Add(Tuple.Create("prog-image", "image-vert-shader", "image-frag-shader"))
+				.Add(Tuple.Create("prog-line", "line-vert-shader", "line-frag-shader")));
 
-			textureLoader.AllLoaded += () => Start(gl, textureLoader);
+			textureLoader.AllLoaded += () => Start(gl, textureLoader, programManager);
 			textureLoader.ProcessTextures();	
 		}
 
-		static void Start(WebGLRenderingContext gl, TextureLoader textureLoader)
+		static void Start(WebGLRenderingContext gl, TextureLoader textureLoader, ProgramManager programManager)
 		{
-			var vShaderTag = Document.GetElementById("vert-shader");
-			var fShaderTag = Document.GetElementById("frag-shader");
-			var vShader = CreateShader(gl, gl.VERTEX_SHADER, vShaderTag.InnerHTML);
-			var fShader = CreateShader(gl, gl.FRAGMENT_SHADER, fShaderTag.InnerHTML);
-			var program = CreateShaderProgram(gl, vShader, fShader);
-
-			Global.SetInterval(() => Render(gl, textureLoader, program), 200);
+			Global.SetInterval(() => Render(gl, textureLoader, programManager), 200);
 		}
 
-		static void Render(WebGLRenderingContext gl, TextureLoader textureLoader, WebGLProgram program)
+		static void Render(WebGLRenderingContext gl, TextureLoader textureLoader, ProgramManager programManager)
 		{
 			gl.Viewport(0, 0, gl.DrawingBufferWidth, gl.DrawingBufferHeight);
 			gl.ClearColor(0, 0, 0, 1);
@@ -48,43 +45,13 @@ namespace Game1
 				for (var x = 0; x <= 960; x += 64)
 				{
 					if (((x + y) & 64) != 0)
-						WebGLHelpers.DrawImage(gl, textureLoader.Textures.First(), program, 0, 0, 64, 64, x, y, 64, 64);
+						WebGLHelpers.DrawImage(gl, textureLoader.Textures.First(), programManager.Programs["prog-image"].Program, 0, 0, 64, 64, x, y, 64, 64);
 				}
 			}
-		}
 
-		static WebGLProgram CreateShaderProgram(WebGLRenderingContext gl, WebGLShader vertShader, WebGLShader fragShader)
-		{
-			var prog = gl.CreateProgram().As<WebGLProgram>();
-
-			gl.AttachShader(prog, vertShader);
-			gl.AttachShader(prog, fragShader);
-			gl.LinkProgram(prog);
-
-			var status = gl.GetProgramParameter(prog, gl.LINK_STATUS);
-			if (status.As<bool>())
-				return prog;
-
-			var info = gl.GetProgramInfoLog(prog);
-			gl.DeleteProgram(prog);
-
-			throw new InvalidOperationException($"Unable to link program. Details: {info}");
-		}
-
-		static WebGLShader CreateShader(WebGLRenderingContext gl, int type, string source)
-		{
-			var shader = gl.CreateShader(type);
-			gl.ShaderSource(shader, source);
-			gl.CompileShader(shader);
-
-			var status = gl.GetShaderParameter(shader, gl.COMPILE_STATUS);
-			if (status.As<bool>())
-				return shader;
-
-			var info = gl.GetShaderInfoLog(shader);
-			gl.DeleteShader(shader);
-
-			throw new InvalidOperationException($"Unable to compile shader. Details: {info}");
+			WebGLHelpers.DrawLine(gl, programManager.Programs["prog-line"].Program, 
+				new RGBAColour(255, 255, 0, 255), 
+				300, 200, 100, 50);
 		}
 
 		static WebGLRenderingContext GetWebGLRenderingContext(HTMLCanvasElement canvas)

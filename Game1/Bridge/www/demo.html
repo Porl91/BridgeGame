@@ -7,7 +7,7 @@
     <title>Bridge Game1</title>
 </head>
 <body>
-	<script id="vert-shader" type="x-shader/x-vertex">
+	<script id="image-vert-shader" type="x-shader/x-vertex">
 		attribute vec4 a_position;
 		attribute vec2 a_texcoord;
 
@@ -20,7 +20,7 @@
 			v_texcoord = a_texcoord;
 		}
 	</script>
-	<script id="frag-shader" type="x-shader/x-fragment">
+	<script id="image-frag-shader" type="x-shader/x-fragment">
 		precision mediump float;
 
 		varying vec2 v_texcoord;
@@ -29,6 +29,29 @@
 
 		void main() {
 			gl_FragColor = texture2D(u_texture, v_texcoord);
+		}
+	</script>
+
+	<script id="line-vert-shader" type="x-shader/x-vertex">
+		attribute vec2 a_position;
+		attribute vec4 a_color;
+
+		varying vec4 v_color;
+
+		uniform mat4 u_matrix;
+
+		void main(void) {
+			gl_Position = u_matrix * vec4(a_position, 0, 1);
+			v_color = a_color;
+		}
+	</script>
+	<script id="line-frag-shader" type="x-shader/x-fragment">
+		precision mediump float;
+
+		varying vec4 v_color;
+
+		void main(void) {
+			gl_FragColor = v_color;
 		}
 	</script>
 
