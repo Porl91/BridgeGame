@@ -6,8 +6,9 @@ namespace Game1
 {
 	public static class WebGLHelpers
 	{
-		public static void DrawImage(WebGLRenderingContext gl, TextureInfo textureInfo, WebGLProgram program, 
-			int texWidth, int texHeight, int xDest, int yDest)
+		public static void DrawImage(WebGLRenderingContext gl, TextureInfo textureInfo, WebGLProgram program,
+			int xSrc, int ySrc, int srcWidth, int srcHeight,
+			int xDest, int yDest, int destWidth, int destHeight)
 		{
 			var positionLocation = gl.GetAttribLocation(program, "a_position");
 			var texCoordLocation = gl.GetAttribLocation(program, "a_texcoord");
@@ -20,7 +21,7 @@ namespace Game1
 			var positionBuffer = gl.CreateBuffer();
 			var positionCoords = new float[]
 			{
-				0, 0,	0, 1,	1, 0,	1, 0,	0, 1,	1, 1
+				0, 0,   0, 1,   1, 0,   1, 0,   0, 1,   1, 1
 			};
 
 			gl.BindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -28,13 +29,21 @@ namespace Game1
 
 			/* Create a buffer to hold the texture coordinates. */
 
-			var sx = texWidth / (float)textureInfo.Width.Value;
-			var sy = texHeight / (float)textureInfo.Height.Value;
-			
+			var sx = srcWidth / (float)textureInfo.Width.Value;
+			var sy = srcHeight / (float)textureInfo.Height.Value;
+
+			var dx = xSrc / (float)textureInfo.Width.Value;
+			var dy = ySrc / (float)textureInfo.Height.Value;
+
 			var texBuffer = gl.CreateBuffer();
 			var texCoords = new float[]
 			{
-				0, 0,   0, sy,   sx, 0,   sx, 0,   0, sy,   sx, sy
+				0 + dx, 0 + dy,
+				0 + dx, sy + dy,
+				sx + dx, 0 + dy,
+				sx + dx, 0 + dy,
+				0 + dx, sy + dy,
+				sx + dx, sy + dy
 			};
 
 			gl.BindBuffer(gl.ARRAY_BUFFER, texBuffer);
@@ -51,8 +60,8 @@ namespace Game1
 
 			var matrix = CameraHelpers.Orthographic(0, gl.Canvas.Width, gl.Canvas.Height, 0, -1, 1);
 			matrix = matrix.Translate(xDest / (float)gl.Canvas.Width * 2, -yDest / (float)gl.Canvas.Height * 2, 0);
-			matrix = matrix.Scale(texWidth, texHeight, 1);
-			Debugger.Break();
+			matrix = matrix.Scale(destWidth, destHeight, 1);
+
 			gl.UniformMatrix4fv(matrixLocation, false, matrix.ToArray());
 			gl.Uniform1i(textureLocation, 0);
 

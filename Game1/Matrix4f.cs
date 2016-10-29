@@ -27,7 +27,7 @@ namespace Game1
 
 		public Matrix4f(Float32Array array)
 		{
-			Values = array.Select(x => x).ToArray();
+			Values = array.ToArray();
 		}
 
 		public Matrix4f Translate(float tx, float ty, float tz)

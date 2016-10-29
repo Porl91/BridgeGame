@@ -48,7 +48,7 @@ namespace Game1
 				for (var x = 0; x <= 960; x += 64)
 				{
 					if (((x + y) & 64) != 0)
-						WebGLHelpers.DrawImage(gl, textureLoader.Textures.First(), program, 64, 64, x, y);
+						WebGLHelpers.DrawImage(gl, textureLoader.Textures.First(), program, 0, 0, 64, 64, x, y, 64, 64);
 				}
 			}
 		}

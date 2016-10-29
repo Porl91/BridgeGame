@@ -24797,7 +24797,7 @@ Bridge.assembly("Game1", function ($asm, globals) {
                 for (var y = 0; y <= 960; y = (y + 64) | 0) {
                     for (var x = 0; x <= 960; x = (x + 64) | 0) {
                         if (((((x + y) | 0)) & 64) !== 0) {
-                            Game1.WebGLHelpers.drawImage(gl, System.Linq.Enumerable.from(textureLoader.getTextures()).first(), program, 64, 64, x, y);
+                            Game1.WebGLHelpers.drawImage(gl, System.Linq.Enumerable.from(textureLoader.getTextures()).first(), program, 0, 0, 64, 64, x, y, 64, 64);
                         }
                     }
                 }
@@ -24914,7 +24914,7 @@ Bridge.assembly("Game1", function ($asm, globals) {
         },
         $ctor1: function (array) {
             this.$initialize();
-            this.setValues(System.Linq.Enumerable.from(array).select($_.Game1.Matrix4f.f1).toArray());
+            this.setValues(System.Linq.Enumerable.from(array).toArray());
         },
         translate: function (tx, ty, tz) {
             return new Game1.Matrix4f.$ctor2([this.getValues()[0], this.getValues()[1], this.getValues()[2], this.getValues()[3], this.getValues()[4], this.getValues()[5], this.getValues()[6], this.getValues()[7], this.getValues()[8], this.getValues()[9], this.getValues()[10], this.getValues()[11], this.getValues()[12] + tx, this.getValues()[13] + ty, this.getValues()[14] + tz, this.getValues()[15]]);
@@ -24938,16 +24938,6 @@ Bridge.assembly("Game1", function ($asm, globals) {
         },
         toArray: function () {
             return this.getValues();
-        }
-    });
-
-    var $_ = {};
-
-    Bridge.ns("Game1.Matrix4f", $_);
-
-    Bridge.apply($_.Game1.Matrix4f, {
-        f1: function (x) {
-            return x;
         }
     });
 
@@ -25028,6 +25018,8 @@ Bridge.assembly("Game1", function ($asm, globals) {
         }
     });
 
+    var $_ = {};
+
     Bridge.ns("Game1.TextureLoader", $_);
 
     Bridge.apply($_.Game1.TextureLoader, {
@@ -25038,7 +25030,7 @@ Bridge.assembly("Game1", function ($asm, globals) {
 
     Bridge.define("Game1.WebGLHelpers", {
         statics: {
-            drawImage: function (gl, textureInfo, program, texWidth, texHeight, xDest, yDest) {
+            drawImage: function (gl, textureInfo, program, xSrc, ySrc, srcWidth, srcHeight, xDest, yDest, destWidth, destHeight) {
                 var positionLocation = gl.getAttribLocation(program, "a_position");
                 var texCoordLocation = gl.getAttribLocation(program, "a_texcoord");
 
@@ -25055,11 +25047,14 @@ Bridge.assembly("Game1", function ($asm, globals) {
 
                 /*  Create a buffer to hold the texture coordinates. */
 
-                var sx = texWidth / textureInfo.getWidth().getValue();
-                var sy = texHeight / textureInfo.getHeight().getValue();
+                var sx = srcWidth / textureInfo.getWidth().getValue();
+                var sy = srcHeight / textureInfo.getHeight().getValue();
+
+                var dx = xSrc / textureInfo.getWidth().getValue();
+                var dy = ySrc / textureInfo.getHeight().getValue();
 
                 var texBuffer = gl.createBuffer();
-                var texCoords = [0, 0, 0, sy, sx, 0, sx, 0, 0, sy, sx, sy];
+                var texCoords = [0 + dx, 0 + dy, 0 + dx, sy + dy, sx + dx, 0 + dy, sx + dx, 0 + dy, 0 + dx, sy + dy, sx + dx, sy + dy];
 
                 gl.bindBuffer(gl.ARRAY_BUFFER, texBuffer);
                 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texCoords), gl.STATIC_DRAW);
@@ -25075,8 +25070,8 @@ Bridge.assembly("Game1", function ($asm, globals) {
 
                 var matrix = Game1.CameraHelpers.orthographic(0, gl.canvas.width, gl.canvas.height, 0, -1, 1);
                 matrix = matrix.translate(xDest / gl.canvas.width * 2, ((-yDest) | 0) / gl.canvas.height * 2, 0);
-                matrix = matrix.scale(texWidth, texHeight, 1);
-                debugger;
+                matrix = matrix.scale(destWidth, destHeight, 1);
+
                 gl.uniformMatrix4fv(matrixLocation, false, matrix.toArray());
                 gl.uniform1i(textureLocation, 0);
 
