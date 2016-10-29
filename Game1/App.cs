@@ -20,7 +20,7 @@ namespace Game1
 				throw new InvalidOperationException("Your browser doesn't support WebGL rendering contexts");
 			
 			var textureLoader = new TextureLoader(Set<TextureInfo>.Empty
-				.Add(TextureInfo.Create(gl, "../../Content/Images/sprites.png")));
+				.Add(TextureInfo.Create(gl, "../Content/Images/sprites.png")));
 
 			textureLoader.AllLoaded += () => Start(gl, textureLoader);
 			textureLoader.ProcessTextures();	
