@@ -29,21 +29,21 @@ namespace Game1
 
 			/* Create a buffer to hold the texture coordinates. */
 
-			var sx = srcWidth / (float)textureInfo.Width.Value;
-			var sy = srcHeight / (float)textureInfo.Height.Value;
+			var sx = xSrc / (float)textureInfo.Width.Value;
+			var sy = ySrc / (float)textureInfo.Height.Value;
 
-			var dx = xSrc / (float)textureInfo.Width.Value;
-			var dy = ySrc / (float)textureInfo.Height.Value;
+			var sw = srcWidth / (float)textureInfo.Width.Value;
+			var sh = srcHeight / (float)textureInfo.Height.Value;
 
 			var texBuffer = gl.CreateBuffer();
 			var texCoords = new float[]
 			{
-				0 + dx, 0 + dy,
-				0 + dx, sy + dy,
-				sx + dx, 0 + dy,
-				sx + dx, 0 + dy,
-				0 + dx, sy + dy,
-				sx + dx, sy + dy
+				0 + sx, 0 + sy,
+				0 + sx, sh + sy,
+				sw + sx, 0 + sy,
+				sw + sx, 0 + sy,
+				0 + sx, sh + sy,
+				sw + sx, sh + sy
 			};
 
 			gl.BindBuffer(gl.ARRAY_BUFFER, texBuffer);
@@ -51,12 +51,16 @@ namespace Game1
 
 			gl.BindTexture(gl.TEXTURE_2D, textureInfo.Texture);
 			gl.UseProgram(program);
+
 			gl.BindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 			gl.EnableVertexAttribArray(positionLocation);
 			gl.VertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
 			gl.BindBuffer(gl.ARRAY_BUFFER, texBuffer);
 			gl.EnableVertexAttribArray(texCoordLocation);
 			gl.VertexAttribPointer(texCoordLocation, 2, gl.FLOAT, false, 0, 0);
+
+			/* Create an standard orthographic projection to transform our coordinates by and bind to our shader uniform. */
 
 			var matrix = CameraHelpers.Orthographic(0, gl.Canvas.Width, gl.Canvas.Height, 0, -1, 1);
 			matrix = matrix.Translate(xDest / (float)gl.Canvas.Width * 2, -yDest / (float)gl.Canvas.Height * 2, 0);

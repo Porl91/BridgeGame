@@ -25047,26 +25047,30 @@ Bridge.assembly("Game1", function ($asm, globals) {
 
                 /*  Create a buffer to hold the texture coordinates. */
 
-                var sx = srcWidth / textureInfo.getWidth().getValue();
-                var sy = srcHeight / textureInfo.getHeight().getValue();
+                var sx = xSrc / textureInfo.getWidth().getValue();
+                var sy = ySrc / textureInfo.getHeight().getValue();
 
-                var dx = xSrc / textureInfo.getWidth().getValue();
-                var dy = ySrc / textureInfo.getHeight().getValue();
+                var sw = srcWidth / textureInfo.getWidth().getValue();
+                var sh = srcHeight / textureInfo.getHeight().getValue();
 
                 var texBuffer = gl.createBuffer();
-                var texCoords = [0 + dx, 0 + dy, 0 + dx, sy + dy, sx + dx, 0 + dy, sx + dx, 0 + dy, 0 + dx, sy + dy, sx + dx, sy + dy];
+                var texCoords = [0 + sx, 0 + sy, 0 + sx, sh + sy, sw + sx, 0 + sy, sw + sx, 0 + sy, 0 + sx, sh + sy, sw + sx, sh + sy];
 
                 gl.bindBuffer(gl.ARRAY_BUFFER, texBuffer);
                 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texCoords), gl.STATIC_DRAW);
 
                 gl.bindTexture(gl.TEXTURE_2D, textureInfo.getTexture());
                 gl.useProgram(program);
+
                 gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
                 gl.enableVertexAttribArray(positionLocation);
                 gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
                 gl.bindBuffer(gl.ARRAY_BUFFER, texBuffer);
                 gl.enableVertexAttribArray(texCoordLocation);
                 gl.vertexAttribPointer(texCoordLocation, 2, gl.FLOAT, false, 0, 0);
+
+                /*  Create an standard orthographic projection to transform our coordinates by and bind to our shader uniform. */
 
                 var matrix = Game1.CameraHelpers.orthographic(0, gl.canvas.width, gl.canvas.height, 0, -1, 1);
                 matrix = matrix.translate(xDest / gl.canvas.width * 2, ((-yDest) | 0) / gl.canvas.height * 2, 0);

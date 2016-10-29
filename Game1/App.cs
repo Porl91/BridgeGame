@@ -42,7 +42,7 @@ namespace Game1
 			gl.Viewport(0, 0, gl.DrawingBufferWidth, gl.DrawingBufferHeight);
 			gl.ClearColor(0, 0, 0, 1);
 			gl.Clear(gl.COLOR_BUFFER_BIT);
-			
+
 			for (var y = 0; y <= 960; y += 64)
 			{
 				for (var x = 0; x <= 960; x += 64)
