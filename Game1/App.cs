@@ -63,7 +63,7 @@ namespace Game1
 			gl.ClearColor(0, 0, 0, 1);
 			gl.Clear(gl.COLOR_BUFFER_BIT);
 
-			level.Render(gl, textureLoader, programManager, level);
+			level.Render(gl, textureLoader, programManager);
 		}
 	}
 }

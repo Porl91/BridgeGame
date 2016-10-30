@@ -69,7 +69,13 @@
     <Compile Include="Core\CameraHelpers.cs" />
     <Compile Include="Level\Level.cs" />
     <Compile Include="Level\Map.cs" />
-    <Compile Include="Level\Tiles\ITile.cs" />
+    <Compile Include="Level\Tiles\Grass.cs" />
+    <Compile Include="Level\Tiles\IMatchTileTypes.cs" />
+    <Compile Include="Level\Tiles\ITileType.cs" />
+    <Compile Include="Level\Tiles\MetalPlate.cs" />
+    <Compile Include="Level\Tiles\TileType.cs" />
+    <Compile Include="Level\Tiles\TileTypeMatcher.cs" />
+    <Compile Include="Level\Tiles\Water.cs" />
     <Compile Include="Maths\Matrix4f.cs" />
     <Compile Include="Core\ProgramManager.cs" />
     <Compile Include="Maths\Vector2f.cs" />
