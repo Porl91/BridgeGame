@@ -19,8 +19,8 @@
 		varying vec2 v_texcoord;
 
 		void main() {
-		gl_Position = u_matrix * a_position;
-		v_texcoord = a_texcoord;
+			gl_Position = u_matrix * a_position;
+			v_texcoord = a_texcoord;
 		}
 	</script>
 	<script id="image-frag-shader" type="x-shader/x-fragment">
@@ -31,7 +31,7 @@
 		uniform sampler2D u_texture;
 
 		void main() {
-		gl_FragColor = texture2D(u_texture, v_texcoord);
+			gl_FragColor = texture2D(u_texture, v_texcoord);
 		}
 	</script>
 
@@ -44,8 +44,8 @@
 		uniform mat4 u_matrix;
 
 		void main(void) {
-		gl_Position = u_matrix * vec4(a_position, 0, 1);
-		v_color = a_color;
+			gl_Position = u_matrix * vec4(a_position, 0, 1);
+			v_color = a_color;
 		}
 	</script>
 	<script id="line-frag-shader" type="x-shader/x-fragment">
@@ -54,7 +54,7 @@
 		varying vec4 v_color;
 
 		void main(void) {
-		gl_FragColor = v_color;
+			gl_FragColor = v_color;
 		}
 	</script>
 	
